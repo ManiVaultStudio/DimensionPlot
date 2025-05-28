@@ -10,55 +10,10 @@
 #include <QHash>
 #include <QDebug>
 #include <QMimeData>
-#include <fstream>
-#include <sstream>
 
 Q_PLUGIN_METADATA(IID "studio.manivault.DimensionPlotView")
 
 using namespace mv;
-
-namespace
-{
-    bool isMetadata(mv::Dataset<DatasetImpl> dataset)
-    {
-        return dataset->hasProperty("PatchSeqType") && dataset->getProperty("PatchSeqType").toString() == "Metadata";
-    }
-
-    QHash<QString, int> mapStringsToIds(const std::vector<QString>& input)
-    {
-        QHash<QString, int> mapping;
-        int nextId = 0;
-
-        for (const QString& str : input) {
-            if (!mapping.contains(str)) {
-                mapping.insert(str, nextId++);
-            }
-        }
-
-        return mapping;
-    }
-
-    // FIXME stupid method
-    QStringList orderedCategoryList(const QHash<QString, int>& categoryToId)
-    {
-        QVector<QPair<int, QString>> idCategoryPairs;
-        for (auto it = categoryToId.constBegin(); it != categoryToId.constEnd(); ++it) {
-            idCategoryPairs.append(qMakePair(it.value(), it.key()));
-        }
-
-        std::sort(idCategoryPairs.begin(), idCategoryPairs.end(),
-            [](const QPair<int, QString>& a, const QPair<int, QString>& b) {
-                return a.first < b.first;
-            });
-
-        QStringList result;
-        for (const auto& pair : idCategoryPairs) {
-            result.append(pair.second);
-        }
-
-        return result;
-    }
-}
 
 DimensionPlotView::DimensionPlotView(const PluginFactory* factory) :
     ViewPlugin(factory),
@@ -88,16 +43,6 @@ void DimensionPlotView::init()
     // Apply the layout
     getWidget().setLayout(layout);
 
-    //// Respond when the name of the dataset in the dataset reference changes
-    //connect(&_scene._cellMetadata, &Dataset<Text>::guiNameChanged, this, [this]()
-    //{
-    //    // Only show the drop indicator when nothing is loaded in the dataset reference
-    //    _dropWidget->setShowDropIndicator(_scene._cellMetadata->getGuiName().isEmpty());
-    //});
-
-    //connect(&_scene._ephysTraces, &Dataset<Text>::changed, this, [this]() { connect(&_scene._ephysTraces, &Dataset<Text>::dataSelectionChanged, this, &DimensionPlotView::onCellSelectionChanged); });
-
-
     // Instantiate new drop widget: See ExampleViewPlugin for details
     _dropWidget = new DropWidget(_webWidget);
     _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag data from the hierarchy in this view"));
@@ -109,7 +54,6 @@ void DimensionPlotView::init()
 
         const auto datasetsMimeData = dynamic_cast<const DatasetsMimeData*>(mimeData);
 
-
         if (datasetsMimeData == nullptr)
             return dropRegions;
 
@@ -120,10 +64,10 @@ void DimensionPlotView::init()
         const auto datasetGuiName = dataset->text();
         const auto datasetId = dataset->getId();
         const auto dataType = dataset->getDataType();
-        const auto dataTypes = DataTypes({ PointType, ClusterType, TextType });
+        const auto dataTypes = DataTypes({ PointType, ClusterType });
 
         if (dataTypes.contains(dataType)) {
-            if (_currentDataSet.isValid() && datasetId == _currentDataSet->getId()) {
+            if (_featureDataset.isValid() && datasetId == _featureDataset->getId()) {
                 dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
             }
             else {
@@ -133,7 +77,7 @@ void DimensionPlotView::init()
 
                     dropRegions << new DropWidget::DropRegion(this, "Points", QString("Visualize %1").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
                         _dropWidget->setShowDropIndicator(false);
-                        _currentDataSet = candidateDataset;
+                        _featureDataset = candidateDataset;
                     });
                 }
                 else if (dataType == ClusterType)
@@ -155,7 +99,7 @@ void DimensionPlotView::init()
         });
 
     // Update data when data set changed
-    connect(&_currentDataSet, &Dataset<Points>::changed, this, &DimensionPlotView::onDatasetChanged);
+    connect(&_featureDataset, &Dataset<Points>::changed, this, &DimensionPlotView::onDatasetChanged);
     connect(&_clusterDataset, &Dataset<Clusters>::changed, this, &DimensionPlotView::onDatasetChanged);
 
     connect(_settingsAction.getDimensionPicker(), &DimensionPickerAction::currentDimensionIndexChanged, this, &DimensionPlotView::onDimensionChanged);
@@ -163,23 +107,14 @@ void DimensionPlotView::init()
 
 void DimensionPlotView::onDatasetChanged()
 {
-    qDebug() << "Weee dataset changed";
-
-    _settingsAction.getDimensionPicker()->setPointsDataset(_currentDataSet);
+    _settingsAction.getDimensionPicker()->setPointsDataset(_featureDataset);
 
     onDimensionChanged();
-
-    //// Get associated metadata dataset
-    //for (mv::Dataset dataset : mv::data().getAllDatasets())
-    //{
-    //    if (isMetadata(dataset))
-    //        _cellMetadata = dataset;
-    //}
 }
 
 void DimensionPlotView::onDimensionChanged()
 {
-    if (!_currentDataSet.isValid() || !_clusterDataset.isValid())
+    if (!_featureDataset.isValid() || !_clusterDataset.isValid())
     {
         return;
     }
@@ -187,50 +122,7 @@ void DimensionPlotView::onDimensionChanged()
     // Get dimension from picker action
     int dimensionIndex = _settingsAction.getDimensionPicker()->getCurrentDimensionIndex();
 
-    _webWidget->setData(_currentDataSet, dimensionIndex, _clusterDataset);
-}
-
-void DimensionPlotView::onDimensionChanged2()
-{
-    if (!_currentDataSet.isValid() || !_cellMetadata.isValid())
-    {
-        return;
-    }
-
-    // Get dimension from picker action
-    int dimensionIndex = _settingsAction.getDimensionPicker()->getCurrentDimensionIndex();
-
-    // Get the bimaps of feature data and metadata
-    mv::KeyBasedSelectionGroup& selGroup = mv::events().getSelectionGroups()[0];
-    const BiMap& featuresBiMap = selGroup.getBiMap(_currentDataSet);
-    const BiMap& metadataBiMap = selGroup.getBiMap(_cellMetadata);
-
-    // Get selected metadata ids
-    std::vector<uint32_t> indices(_currentDataSet->getNumPoints());
-    std::iota(indices.begin(), indices.end(), 0);
-
-    std::vector<QString> keys;
-    keys = featuresBiMap.getKeysByValues(indices);
-    std::vector<uint32_t> metadataIds = metadataBiMap.getValuesByKeys(keys);
-
-    // Get subclass column from metadata
-    std::vector<QString> subclasses = _cellMetadata->getColumn("Subclass");
-
-    // Get indices of every category
-    QHash<QString, int> categories = mapStringsToIds(subclasses);
-
-    // Get category ids
-    std::vector<int> categoryIds(indices.size());
-    for (int i = 0; i < categoryIds.size(); i++)
-    {
-        QString subclass = subclasses[metadataIds[i]];
-        //qDebug() << subclass << i;
-        categoryIds[i] = categories[subclass];
-    }
-
-    QStringList categoryKeys = orderedCategoryList(categories);
-
-    _webWidget->setData(_currentDataSet, dimensionIndex, categoryKeys, categoryIds);
+    _webWidget->setData(_featureDataset, dimensionIndex, _clusterDataset);
 }
 
 ViewPlugin* DimensionPlotViewFactory::produce()

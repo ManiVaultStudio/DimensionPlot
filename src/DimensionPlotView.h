@@ -8,7 +8,6 @@
 
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
-#include <TextData/TextData.h>
 
 #include <widgets/DropWidget.h>
 #include <actions/StringAction.h>
@@ -53,15 +52,13 @@ public:
 private:
     void onDatasetChanged();
     void onDimensionChanged();
-    void onDimensionChanged2();
 
 private:
     HorizontalToolbarAction         _primaryToolbarAction;      /** Horizontal toolbar for primary content */
     SettingsAction                  _settingsAction;
     DropWidget*                     _dropWidget;                /** Widget for drag and drop behavior */
-    mv::Dataset<Points>             _currentDataSet;            // Reference to currently shown data set
-    mv::Dataset<Clusters>           _clusterDataset;            // Reference to cluster dataset
-    mv::Dataset<Text>               _cellMetadata;
+    mv::Dataset<Points>             _featureDataset;            // Reference to dataset containing obs x features
+    mv::Dataset<Clusters>           _clusterDataset;            // Reference to category dataset
 
     PlotWebWidget*                  _webWidget;
 };
