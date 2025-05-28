@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="dimplot">
+        <file>dimplot/plot_view.html</file>
+        <file>dimplot/plot_view.css</file>
+        <file>dimplot/plot_view.tools.js</file>
+        <file>dimplot/plot_view.js</file>
+    </qresource>
+    <qresource prefix="dimplot">
+        <file>js_libs/qwebchannel.tools.js</file>
+    </qresource>
+        <qresource prefix="dimplot">
+        <file>js_libs/qwebchannel.tools.js</file>
+    </qresource>
+</RCC>

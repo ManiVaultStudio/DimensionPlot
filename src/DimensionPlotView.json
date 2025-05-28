@@ -1,0 +1,5 @@
+{
+    "name" : "Dimension Plot View",
+    "version" : "1.0",
+    "dependencies" : ["Points"]
+}
