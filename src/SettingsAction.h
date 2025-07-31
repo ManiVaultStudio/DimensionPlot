@@ -4,7 +4,7 @@
 #include <actions/TriggerAction.h>
 #include <PointData/DimensionPickerAction.h>
 
-class DimensionPlotView;
+class DimensionPlot;
 
 class SettingsAction : public mv::gui::GroupAction
 {
@@ -23,7 +23,7 @@ public: // Action getters
     //mv::gui::TriggerAction& getRealRendererButton() { return _realRendererButton; }
 
 private:
-    DimensionPlotView*              _plugin;
+    DimensionPlot*              _plugin;
 
     DimensionPickerAction*          _dimensionAction;
     //mv::gui::TriggerAction  _lineRendererButton;

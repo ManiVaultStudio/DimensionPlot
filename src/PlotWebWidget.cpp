@@ -1,6 +1,6 @@
 #include "PlotWebWidget.h"
 
-#include "DimensionPlotView.h"
+#include "DimensionPlot.h"
 
 #include <util/Timer.h>
 
@@ -28,7 +28,7 @@ JSCommunicationObject::JSCommunicationObject()
 // PlotWebWidget
 // =============================================================================
 
-PlotWebWidget::PlotWebWidget(DimensionPlotView* plugin) :
+PlotWebWidget::PlotWebWidget(DimensionPlot* plugin) :
     _commObject()
 {
     connect(this, &WebWidget::webPageFullyLoaded, this, &PlotWebWidget::onWebPageFullyLoaded);
@@ -155,10 +155,10 @@ void JSCommunicationObject::js_partitionHovered(const QString& data) {
 
 void PlotWebWidget::onWebPageFullyLoaded()
 {
-    qDebug() << "EphysWebWidget::onWebPageFullyLoaded: Web page completely loaded.";
+    qDebug() << "PlotWebWidget::onWebPageFullyLoaded: Web page completely loaded.";
     //emit webPageLoaded();
 
-    qDebug() << "EphysWebWidget size: " << width() << height();
+    qDebug() << "PlotWebWidget size: " << width() << height();
 }
 
 void PlotWebWidget::onPartitionHovered(QString name)

@@ -32,13 +32,13 @@ find_package(ManiVault COMPONENTS Core PointData ClusterData TextData CONFIG REQ
 # -----------------------------------------------------------------------------
 # Define the plugin sources
 set(PLUGIN_SOURCES
-    src/DimensionPlotView.h
-    src/DimensionPlotView.cpp
+    src/DimensionPlot.h
+    src/DimensionPlot.cpp
     src/PlotWebWidget.h
     src/PlotWebWidget.cpp
     src/SettingsAction.h
     src/SettingsAction.cpp
-    src/DimensionPlotView.json
+    src/DimensionPlot.json
 )
 
 set(QRESOURCES

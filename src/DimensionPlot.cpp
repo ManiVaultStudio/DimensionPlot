@@ -1,4 +1,4 @@
-#include "DimensionPlotView.h"
+#include "DimensionPlot.h"
 
 #include <event/Event.h>
 
@@ -11,11 +11,11 @@
 #include <QDebug>
 #include <QMimeData>
 
-Q_PLUGIN_METADATA(IID "studio.manivault.DimensionPlotView")
+Q_PLUGIN_METADATA(IID "studio.manivault.DimensionPlot")
 
 using namespace mv;
 
-DimensionPlotView::DimensionPlotView(const PluginFactory* factory) :
+DimensionPlot::DimensionPlot(const PluginFactory* factory) :
     ViewPlugin(factory),
     _dropWidget(nullptr),
     _webWidget(new PlotWebWidget(this)),
@@ -25,7 +25,7 @@ DimensionPlotView::DimensionPlotView(const PluginFactory* factory) :
 
 }
 
-void DimensionPlotView::init()
+void DimensionPlot::init()
 {
     // Create layout
     auto layout = new QVBoxLayout();
@@ -99,20 +99,20 @@ void DimensionPlotView::init()
         });
 
     // Update data when data set changed
-    connect(&_featureDataset, &Dataset<Points>::changed, this, &DimensionPlotView::onDatasetChanged);
-    connect(&_clusterDataset, &Dataset<Clusters>::changed, this, &DimensionPlotView::onDatasetChanged);
+    connect(&_featureDataset, &Dataset<Points>::changed, this, &DimensionPlot::onDatasetChanged);
+    connect(&_clusterDataset, &Dataset<Clusters>::changed, this, &DimensionPlot::onDatasetChanged);
 
-    connect(_settingsAction.getDimensionPicker(), &DimensionPickerAction::currentDimensionIndexChanged, this, &DimensionPlotView::onDimensionChanged);
+    connect(_settingsAction.getDimensionPicker(), &DimensionPickerAction::currentDimensionIndexChanged, this, &DimensionPlot::onDimensionChanged);
 }
 
-void DimensionPlotView::onDatasetChanged()
+void DimensionPlot::onDatasetChanged()
 {
     _settingsAction.getDimensionPicker()->setPointsDataset(_featureDataset);
 
     onDimensionChanged();
 }
 
-void DimensionPlotView::onDimensionChanged()
+void DimensionPlot::onDimensionChanged()
 {
     if (!_featureDataset.isValid() || !_clusterDataset.isValid())
     {
@@ -125,12 +125,12 @@ void DimensionPlotView::onDimensionChanged()
     _webWidget->setData(_featureDataset, dimensionIndex, _clusterDataset);
 }
 
-ViewPlugin* DimensionPlotViewFactory::produce()
+ViewPlugin* DimensionPlotFactory::produce()
 {
-    return new DimensionPlotView(this);
+    return new DimensionPlot(this);
 }
 
-mv::DataTypes DimensionPlotViewFactory::supportedDataTypes() const
+mv::DataTypes DimensionPlotFactory::supportedDataTypes() const
 {
     DataTypes supportedTypes;
 
@@ -140,18 +140,18 @@ mv::DataTypes DimensionPlotViewFactory::supportedDataTypes() const
     return supportedTypes;
 }
 
-mv::gui::PluginTriggerActions DimensionPlotViewFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
+mv::gui::PluginTriggerActions DimensionPlotFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
 {
     PluginTriggerActions pluginTriggerActions;
 
-    const auto getPluginInstance = [this]() -> DimensionPlotView* {
-        return dynamic_cast<DimensionPlotView*>(plugins().requestViewPlugin(getKind()));
+    const auto getPluginInstance = [this]() -> DimensionPlot* {
+        return dynamic_cast<DimensionPlot*>(plugins().requestViewPlugin(getKind()));
     };
 
     const auto numberOfDatasets = datasets.count();
 
     if (numberOfDatasets >= 1 && PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
-        auto pluginTriggerAction = new PluginTriggerAction(const_cast<DimensionPlotViewFactory*>(this), this, "Dimension Plot Viewer", "Plot dimensions", icon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
+        auto pluginTriggerAction = new PluginTriggerAction(const_cast<DimensionPlotFactory*>(this), this, "Dimension Plot", "Plot dimensions", icon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
             for (auto dataset : datasets)
                 getPluginInstance();
         });

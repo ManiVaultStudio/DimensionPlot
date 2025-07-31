@@ -31,7 +31,7 @@ class QLabel;
  *
  * @authors J. Thijssen
  */
-class DimensionPlotView : public ViewPlugin
+class DimensionPlot : public ViewPlugin
 {
     Q_OBJECT
 
@@ -41,10 +41,10 @@ public:
      * Constructor
      * @param factory Pointer to the plugin factory
      */
-    DimensionPlotView(const PluginFactory* factory);
+    DimensionPlot(const PluginFactory* factory);
 
     /** Destructor */
-    ~DimensionPlotView() override = default;
+    ~DimensionPlot() override = default;
     
     /** This function is called by the core after the view plugin has been created */
     void init() override;
@@ -68,20 +68,20 @@ private:
  *
  * Note: Factory does not need to be altered (merely responsible for generating new plugins when requested)
  */
-class DimensionPlotViewFactory : public ViewPluginFactory
+class DimensionPlotFactory : public ViewPluginFactory
 {
     Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID   "studio.manivault.DimensionPlotView"
-                      FILE  "DimensionPlotView.json")
+    Q_PLUGIN_METADATA(IID   "studio.manivault.DimensionPlot"
+                      FILE  "DimensionPlot.json")
 
 public:
 
     /** Default constructor */
-    DimensionPlotViewFactory() {}
+    DimensionPlotFactory() {}
 
     /** Destructor */
-    ~DimensionPlotViewFactory() override {}
+    ~DimensionPlotFactory() override {}
     
     /** Creates an instance of the example view plugin */
     ViewPlugin* produce() override;

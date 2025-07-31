@@ -7,7 +7,7 @@
 
 #include <vector>
 
-class DimensionPlotView;
+class DimensionPlot;
 
 class JSCommunicationObject : public mv::gui::WebCommunicationObject
 {
@@ -38,7 +38,7 @@ class PlotWebWidget : public mv::gui::WebWidget
 {
     Q_OBJECT
 public:
-    PlotWebWidget(DimensionPlotView* plugin);
+    PlotWebWidget(DimensionPlot* plugin);
     ~PlotWebWidget();
 
     JSCommunicationObject& getCommObject() { return _commObject; }
