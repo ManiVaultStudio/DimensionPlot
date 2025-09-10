@@ -78,6 +78,9 @@ void DimensionPlot::init()
                     dropRegions << new DropWidget::DropRegion(this, "Points", QString("Visualize %1").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
                         _dropWidget->setShowDropIndicator(false);
                         _featureDataset = candidateDataset;
+                        _clusterDataset = nullptr;
+
+                        onDatasetChanged();
                     });
                 }
                 else if (dataType == ClusterType)
@@ -87,6 +90,8 @@ void DimensionPlot::init()
                     dropRegions << new DropWidget::DropRegion(this, "Clusters", QString("Add clusters %1").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
                         _dropWidget->setShowDropIndicator(false);
                         _clusterDataset = candidateDataset;
+
+                        onDatasetChanged();
                     });
                 }
             }
@@ -99,7 +104,7 @@ void DimensionPlot::init()
         });
 
     // Update data when data set changed
-    connect(&_featureDataset, &Dataset<Points>::changed, this, &DimensionPlot::onDatasetChanged);
+    //connect(&_featureDataset, &Dataset<Points>::changed, this, &DimensionPlot::onDatasetChanged);
     connect(&_clusterDataset, &Dataset<Clusters>::changed, this, &DimensionPlot::onDatasetChanged);
 
     connect(_settingsAction.getDimensionPicker(), &DimensionPickerAction::currentDimensionIndexChanged, this, &DimensionPlot::onDimensionChanged);
@@ -107,6 +112,12 @@ void DimensionPlot::init()
 
 void DimensionPlot::onDatasetChanged()
 {
+    if (!_featureDataset.isValid() || !_clusterDataset.isValid())
+    {
+        qWarning() << "No valid cluster dataset";
+        return;
+    }
+
     _settingsAction.getDimensionPicker()->setPointsDataset(_featureDataset);
 
     onDimensionChanged();
@@ -116,13 +127,15 @@ void DimensionPlot::onDimensionChanged()
 {
     if (!_featureDataset.isValid() || !_clusterDataset.isValid())
     {
+        qWarning() << "No valid cluster";
         return;
     }
 
     // Get dimension from picker action
     int dimensionIndex = _settingsAction.getDimensionPicker()->getCurrentDimensionIndex();
 
-    _webWidget->setData(_featureDataset, dimensionIndex, _clusterDataset);
+    if (dimensionIndex >= 0 && dimensionIndex < _featureDataset->getNumDimensions())
+        _webWidget->setData(_featureDataset, dimensionIndex, _clusterDataset);
 }
 
 ViewPlugin* DimensionPlotFactory::produce()
