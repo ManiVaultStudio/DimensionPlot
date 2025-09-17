@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonValue>
 #include <QHash>
+#include <QFileDialog>
 
 #include <iostream>
 #include <random>
@@ -38,6 +39,8 @@ PlotWebWidget::PlotWebWidget(DimensionPlot* plugin) :
 
     // Ensure linking to the resources defined in res/ephys_viewer_resources.qrc
     Q_INIT_RESOURCE(dimplot_resources);
+
+    connect(&getCommObject(), &JSCommunicationObject::savePngData, this, &PlotWebWidget::savePngData);
 
     // ManiVault and Qt create a "QtBridge" object on the js side which represents _comObject
     // there, we can connect the signals qt_js_* and call the slots js_qt_* from our communication object
@@ -153,6 +156,15 @@ void JSCommunicationObject::js_partitionHovered(const QString& data) {
     }
 }
 
+void JSCommunicationObject::js_savePngData(const QString& dataUrl, const QString& suggestedName)
+{
+    if (!dataUrl.isEmpty())
+    {
+        qDebug() << "SAVE PNG SIGNAL" << data;
+        emit savePngData(dataUrl, suggestedName);
+    }
+}
+
 void PlotWebWidget::onWebPageFullyLoaded()
 {
     qDebug() << "PlotWebWidget::onWebPageFullyLoaded: Web page completely loaded.";
@@ -164,6 +176,27 @@ void PlotWebWidget::onWebPageFullyLoaded()
 void PlotWebWidget::onPartitionHovered(QString name)
 {
     qDebug() << "You hovered over partition: " << name;
+}
+
+void PlotWebWidget::savePngData(const QString& dataUrl, const QString& suggestedName)
+{
+    QString b64 = dataUrl;
+    int comma = b64.indexOf(',');
+    if (comma >= 0) b64 = b64.mid(comma + 1);
+
+    QByteArray bytes = QByteArray::fromBase64(b64.toUtf8());
+
+    QString path = QFileDialog::getSaveFileName(nullptr,
+        QStringLiteral("Save PNG"), suggestedName,
+        QStringLiteral("PNG Files (*.png)"));
+    if (path.isEmpty()) return;
+    if (!path.endsWith(".png", Qt::CaseInsensitive)) path += ".png";
+
+    QFile f(path);
+    if (f.open(QIODevice::WriteOnly)) {
+        f.write(bytes);
+        f.close();
+    }
 }
 
 void PlotWebWidget::resizeEvent(QResizeEvent* event)

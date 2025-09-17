@@ -18,7 +18,7 @@ try {
         notifyBridgeAvailable();
     });
 } catch (error) {
-    log("TaxonomyView: qwebchannel: could not connect qt");
+    log("DimensionPlot: qwebchannel: could not connect qt");
 }
 
 // The slot js_available is defined by ManiVault's WebWidget and will
@@ -28,7 +28,7 @@ function notifyBridgeAvailable() {
         QtBridge.js_available();
     }
     else {
-        log("TaxonomyView: qwebchannel: QtBridge is not available - something went wrong");
+        log("DimensionPlot: qwebchannel: QtBridge is not available - something went wrong");
     }
 }
 
@@ -41,15 +41,15 @@ function notifyBridgeAvailable() {
     // }
 // }
 
-// function onHeaderOptionChecked(data)
-// {
-    // if (isQtAvailable)
-        // QtBridge.onJsHeaderOptionsChecked(data);
-// }
+function exportSvgToPng(dataUrl, filename)
+{
+    if (isQtAvailable)
+        QtBridge.js_savePngData(dataUrl, filename);
+}
 
 // utility function: pipe errors to log
 window.onerror = function (msg, url, num) {
-    log("TaxonomyView: qwebchannel: Error: " + msg + "\nURL: " + url + "\nLine: " + num);
+    log("DimensionPlot: qwebchannel: Error: " + msg + "\nURL: " + url + "\nLine: " + num);
 };
 
 // utility function: auto log for Qt and console

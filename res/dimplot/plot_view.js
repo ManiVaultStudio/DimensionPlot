@@ -1,3 +1,64 @@
+function exportSvgToPngViaQtOrBrowser(svgNode, { filename = 'chart.png', scale = 2 } = {}) {
+  const width  = svgNode.width.baseVal.value || svgNode.getBoundingClientRect().width;
+  const height = svgNode.height.baseVal.value || svgNode.getBoundingClientRect().height;
+
+  const cloned = svgNode.cloneNode(true);
+  cloned.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  cloned.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+
+  const svgData = new XMLSerializer().serializeToString(cloned);
+  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.floor(width  * scale));
+    canvas.height= Math.max(1, Math.floor(height * scale));
+    const ctx = canvas.getContext('2d');
+
+    // White background; remove if you want transparency
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    // Prefer Qt save path if available
+    {
+      const dataUrl = canvas.toDataURL('image/png'); // data:image/png;base64,....
+      // Let Qt show a Save dialog and write the file
+      exportSvgToPng(dataUrl, filename);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    // Fallback: browser download
+    canvas.toBlob((pngBlob) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(pngBlob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  };
+  img.onerror = (e) => { console.error('PNG export failed', e); URL.revokeObjectURL(url); };
+  img.src = url;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btnDownload');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const svg = document.querySelector('svg');
+      const scale = Math.max(0.5, parseFloat(document.getElementById('downloadScale')?.value || '2')) || 2;
+      const filename = (document.getElementById('downloadName')?.value || 'chart.png').trim();
+      exportSvgToPngViaQtOrBrowser(svg, { filename, scale });
+    });
+  }
+});
+
 function plotData(jsonDoc) {
     const svg = d3.select("svg");
     svg.selectAll("*").remove();

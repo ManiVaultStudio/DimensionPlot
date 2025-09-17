@@ -25,10 +25,12 @@ signals:
 public slots:
     // Invoked from JS side 
     void js_partitionHovered(const QString& data);
+    void js_savePngData(const QString& dataUrl, const QString& suggestedName);
 
 signals:
     // Signals from comm object to web widget
     void partitionHovered(QString name);
+    void savePngData(const QString& dataUrl, const QString& suggestedName);
 
 private:
 
@@ -49,6 +51,7 @@ public:
 private slots:
     void onWebPageFullyLoaded();
     void onPartitionHovered(QString name);
+    void savePngData(const QString& dataUrl, const QString& suggestedName);
 
 protected:
     void resizeEvent(QResizeEvent* event);

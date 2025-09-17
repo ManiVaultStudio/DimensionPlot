@@ -34,14 +34,16 @@
 </head>
 
 <body>
+<div class="d-flex align-items-center gap-2 mb-2">
+  <button id="btnDownload" class="btn btn-primary btn-sm" type="button">Download PNG</button>
+  <label class="form-label m-0">Scale
+    <input id="downloadScale" class="form-control form-control-sm d-inline-block" style="width: 5rem;" type="number" step="0.5" min="0.5" value="2">
+  </label>
+  <label class="form-label m-0">File name
+    <input id="downloadName" class="form-control form-control-sm d-inline-block" style="width: 14rem;" type="text" value="chart.png">
+  </label>
+</div>
 <svg width="500" height="300"></svg>
-  <!-- <div class="container-fluid"> -->
-
-    <!-- <div class="row" id="traceRow"> -->
-    <!-- </div> -->
-
-  <!-- </div> -->
-
 </body>
 
 </html>
