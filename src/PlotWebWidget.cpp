@@ -142,7 +142,7 @@ void PlotWebWidget::setData(mv::Dataset<Points>& points, int dim, mv::Dataset<Cl
 
     QJsonDocument doc(rootObj);
     QString strJson(doc.toJson(QJsonDocument::Indented));
-    qDebug() << doc.toJson(QJsonDocument::Compact);
+    //qDebug() << doc.toJson(QJsonDocument::Compact);
 
     //t.printElapsedTime("SetData", true);
     _commObject.setData(strJson);

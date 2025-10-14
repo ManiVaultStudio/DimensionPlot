@@ -1,12 +1,14 @@
 #pragma once
 
 #include <actions/GroupAction.h>
+#include <actions/HorizontalGroupAction.h>
 #include <actions/TriggerAction.h>
 #include <PointData/DimensionPickerAction.h>
+#include <actions/DatasetPickerAction.h>
 
 class DimensionPlot;
 
-class SettingsAction : public mv::gui::GroupAction
+class SettingsAction : public mv::gui::HorizontalGroupAction
 {
 public:
     /**
@@ -19,13 +21,11 @@ public:
 public: // Action getters
     DimensionPickerAction* getDimensionPicker() { return _dimensionAction; }
 
-    //mv::gui::TriggerAction& getLineRendererButton() { return _lineRendererButton; }
-    //mv::gui::TriggerAction& getRealRendererButton() { return _realRendererButton; }
+    DatasetPickerAction* getMetadataPicker() { return _metadataPicker; }
 
 private:
     DimensionPlot*              _plugin;
 
     DimensionPickerAction*          _dimensionAction;
-    //mv::gui::TriggerAction  _lineRendererButton;
-    //mv::gui::TriggerAction  _realRendererButton;
+    DatasetPickerAction*            _metadataPicker;
 };

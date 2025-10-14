@@ -59,9 +59,46 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function plotData(jsonDoc) {
+function sizeSvgToFit() {
+  const box = document.getElementById('plot-container');
+  const svg = document.querySelector('svg');
+  if (!box || !svg) return;
+
+  const r = box.getBoundingClientRect();
+  // Largest 2:1 rectangle that fits inside r
+  const targetW = Math.min(r.width, 2 * r.height);
+  const targetH = targetW / 2;
+
+  // Use explicit pixel size; keep viewBox for internal layout
+  svg.setAttribute('width',  Math.floor(targetW));
+  svg.setAttribute('height', Math.floor(targetH));
+}
+
+let __lastPlotData = null;
+
+function plotData(jsonDoc)
+{
+    __lastPlotData = jsonDoc; // keep for resize redraw
+    
     const svg = d3.select("svg");
+    
+    svg.attr('viewBox', '0 0 2000 1000')
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    sizeSvgToFit();   // <-- fit to widget before computing margins
+    
     svg.selectAll("*").remove();
+
+    // Measure the actual on-screen size (attributes may be unset since CSS drives size)
+    const node = svg.node();
+    const rect = node.getBoundingClientRect();
+    const cssWidth  = Math.max(1, Math.floor(rect.width));
+    const cssHeight = Math.max(1, Math.floor(rect.height));
+
+    // Make the SVG scalable and crisp on resize/HiDPI
+    svg
+      .attr("viewBox", `0 0 ${cssWidth} ${cssHeight}`)
+      .attr("preserveAspectRatio", "xMidYMid meet");
 
     const { title, values, categories } = jsonDoc;
 
@@ -84,16 +121,18 @@ function plotData(jsonDoc) {
 
     const grouped = d3.group(flatData, d => d.category);
     const categoryNames = Array.from(grouped.keys());
+    const maxChars = Math.max(...categoryNames.map(d => d.length));
 
     // Layout setup
-    const margin = { top: 50, right: 30, bottom: 70, left: 50 };
-    const width = +svg.attr("width") - margin.left - margin.right;
-    const height = +svg.attr("height") - margin.top - margin.bottom;
+    const margin = { top: 50, right: 30, bottom: Math.max(20 + maxChars * 6, 70), left: 50 };
+
+    const width = cssWidth - margin.left - margin.right;
+    const height = cssHeight - margin.top - margin.bottom;
     const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
     // Title
     svg.append("text")
-        .attr("x", +svg.attr("width") / 2)
+        .attr("x", cssWidth / 2)
         .attr("y", margin.top / 2)
         .attr("text-anchor", "middle")
         .attr("font-size", "18px")
@@ -101,13 +140,10 @@ function plotData(jsonDoc) {
         .text(title);
 
     // Scales
-    const x = d3.scaleBand()
-        .domain(categoryNames)
-        .range([0, width])
-        .padding(0.4);
+    const x = d3.scaleBand().domain(categoryNames).range([0, width]).padding(0.4);
 
     const allValues = flatData.map(d => d.value);
-    const padding = (d3.max(allValues) - d3.min(allValues)) * 0.1;
+    const padding = (d3.max(allValues) - d3.min(allValues)) * 0.1 || 1; // guard when all values equal
 
     const y = d3.scaleLinear()
         .domain([d3.min(allValues) - padding, d3.max(allValues) + padding])
@@ -205,3 +241,9 @@ function plotData(jsonDoc) {
           .attr("opacity", 0.5);
     }
 }
+
+// Re-render on window resize (Qt will usually emit resize events to the page)
+window.addEventListener('resize', () => {
+  sizeSvgToFit();
+  if (__lastPlotData) plotData(__lastPlotData);  // if you keep a last dataset
+});

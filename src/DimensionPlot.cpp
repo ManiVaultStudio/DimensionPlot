@@ -35,7 +35,7 @@ void DimensionPlot::init()
     // Load webpage
     _webWidget->setPage(":dimplot/dimplot/plot_view.html", "qrc:/dimplot/dimplot/");
     
-    _primaryToolbarAction.addAction(_settingsAction.getDimensionPicker());
+    _primaryToolbarAction.addAction(&_settingsAction);
 
     layout->addWidget(_primaryToolbarAction.createWidget(&getWidget()), 1);
     layout->addWidget(_webWidget, 99);
@@ -45,7 +45,7 @@ void DimensionPlot::init()
 
     // Instantiate new drop widget: See ExampleViewPlugin for details
     _dropWidget = new DropWidget(_webWidget);
-    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag data from the hierarchy in this view"));
+    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No feature data loaded", "Drag feature data from the hierarchy to this view"));
 
     _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
 
@@ -64,36 +64,24 @@ void DimensionPlot::init()
         const auto datasetGuiName = dataset->text();
         const auto datasetId = dataset->getId();
         const auto dataType = dataset->getDataType();
-        const auto dataTypes = DataTypes({ PointType, ClusterType });
+        const auto dataTypes = DataTypes({ PointType });
 
-        if (dataTypes.contains(dataType)) {
+        if (dataTypes.contains(dataType))
+        {
             if (_featureDataset.isValid() && datasetId == _featureDataset->getId()) {
                 dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
             }
-            else {
-                if (dataType == PointType)
-                {
-                    auto candidateDataset = mv::data().getDataset<Points>(datasetId);
+            else
+            {
+                auto candidateDataset = mv::data().getDataset<Points>(datasetId);
 
-                    dropRegions << new DropWidget::DropRegion(this, "Points", QString("Visualize %1").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
-                        _dropWidget->setShowDropIndicator(false);
-                        _featureDataset = candidateDataset;
-                        _clusterDataset = nullptr;
+                dropRegions << new DropWidget::DropRegion(this, "Points", QString("Visualize %1").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
+                    _dropWidget->setShowDropIndicator(false);
+                    _featureDataset = candidateDataset;
+                    _clusterDataset = nullptr;
 
-                        onDatasetChanged();
-                    });
-                }
-                else if (dataType == ClusterType)
-                {
-                    auto candidateDataset = mv::data().getDataset<Clusters>(datasetId);
-
-                    dropRegions << new DropWidget::DropRegion(this, "Clusters", QString("Add clusters %1").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
-                        _dropWidget->setShowDropIndicator(false);
-                        _clusterDataset = candidateDataset;
-
-                        onDatasetChanged();
-                    });
-                }
+                    onFeatureDatasetChanged();
+                });
             }
         }
         else {
@@ -104,21 +92,63 @@ void DimensionPlot::init()
         });
 
     // Update data when data set changed
-    //connect(&_featureDataset, &Dataset<Points>::changed, this, &DimensionPlot::onDatasetChanged);
-    connect(&_clusterDataset, &Dataset<Clusters>::changed, this, &DimensionPlot::onDatasetChanged);
-
+    connect(_settingsAction.getMetadataPicker(), &DatasetPickerAction::currentIndexChanged, this, &DimensionPlot::onClusterDatasetChanged);
     connect(_settingsAction.getDimensionPicker(), &DimensionPickerAction::currentDimensionIndexChanged, this, &DimensionPlot::onDimensionChanged);
 }
 
-void DimensionPlot::onDatasetChanged()
+mv::Datasets getClusterDatasets(mv::Dataset<Points> featureDataset)
 {
-    if (!_featureDataset.isValid() || !_clusterDataset.isValid())
+    // Obtain the data hierarchy item from the source dataset
+    auto* parentItem = dataHierarchy().getItem(featureDataset->getId());
+
+    // Ask for the data hierarchy children of the given dataset
+    DataHierarchyItems childrenItems = dataHierarchy().getChildren(*parentItem);
+
+    mv::Datasets clusterDatasets;
+    // Iterate over the children and find the ones of type cluster
+    for (DataHierarchyItem* item : childrenItems)
     {
-        qWarning() << "No valid cluster dataset";
-        return;
+        DataType type = item->getDataType();
+        if (type == ClusterType)
+        {
+            Dataset<Clusters> clusterDataset = item->getDataset<Clusters>();
+            clusterDatasets.push_back(clusterDataset);
+        }
     }
+    return clusterDatasets;
+}
+
+void DimensionPlot::onFeatureDatasetChanged()
+{
+    if (!_featureDataset.isValid())
+        return;
 
     _settingsAction.getDimensionPicker()->setPointsDataset(_featureDataset);
+
+    // Set cluster dataset
+    mv::Datasets clusterDatasets = getClusterDatasets(_featureDataset);
+    _settingsAction.getMetadataPicker()->setDatasets(clusterDatasets);
+    int initialSelectionIndex = 0;
+    int minClusters = std::numeric_limits<int>::max();
+    for (int i = 0; i < clusterDatasets.size(); i++)
+    {
+        mv::Dataset<Clusters> clusterDataset = clusterDatasets[i];
+        if (clusterDataset->getClusters().size() < minClusters)
+        {
+            initialSelectionIndex = i;
+            minClusters = clusterDataset->getClusters().size();
+        }
+    }
+    _settingsAction.getMetadataPicker()->setCurrentIndex(initialSelectionIndex);
+
+    onClusterDatasetChanged();
+
+    onDimensionChanged();
+}
+
+void DimensionPlot::onClusterDatasetChanged()
+{
+    _clusterDataset = _settingsAction.getMetadataPicker()->getCurrentDataset();
 
     onDimensionChanged();
 }
@@ -127,7 +157,7 @@ void DimensionPlot::onDimensionChanged()
 {
     if (!_featureDataset.isValid() || !_clusterDataset.isValid())
     {
-        qWarning() << "No valid cluster";
+        qWarning() << "[DimensionPlot] No valid metadata dataset set";
         return;
     }
 
