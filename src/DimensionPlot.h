@@ -50,7 +50,8 @@ public:
     void init() override;
 
 private:
-    void onDatasetChanged();
+    void onFeatureDatasetChanged();
+    void onClusterDatasetChanged();
     void onDimensionChanged();
 
 private:
