@@ -19,13 +19,29 @@ public:
     Q_INVOKABLE SettingsAction(QObject* parent, const QString& title);
 
 public: // Action getters
+    DatasetPickerAction& getCurrentDatasetAction() { return _currentDatasetAction; }
+
     DimensionPickerAction* getDimensionPicker() { return _dimensionAction; }
 
     DatasetPickerAction* getMetadataPicker() { return _metadataPicker; }
 
+public: // Serialization
+    /**
+     * Load plugin from variant map
+     * @param Variant map representation of the plugin
+     */
+    void fromVariantMap(const QVariantMap& variantMap) override;
+
+    /**
+     * Save plugin to variant map
+     * @return Variant map representation of the plugin
+     */
+    QVariantMap toVariantMap() const override;
+
 private:
     DimensionPlot*              _plugin;
 
-    DimensionPickerAction*          _dimensionAction;
-    DatasetPickerAction*            _metadataPicker;
+    DatasetPickerAction         _currentDatasetAction;
+    DimensionPickerAction*      _dimensionAction;
+    DatasetPickerAction*        _metadataPicker;
 };

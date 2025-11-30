@@ -78,6 +78,7 @@ void DimensionPlot::init()
                 dropRegions << new DropWidget::DropRegion(this, "Points", QString("Visualize %1").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
                     _dropWidget->setShowDropIndicator(false);
                     _featureDataset = candidateDataset;
+                    _settingsAction.getCurrentDatasetAction().setCurrentDataset(_featureDataset);
                     _clusterDataset = nullptr;
 
                     onFeatureDatasetChanged();
@@ -94,6 +95,11 @@ void DimensionPlot::init()
     // Update data when data set changed
     connect(_settingsAction.getMetadataPicker(), &DatasetPickerAction::currentIndexChanged, this, &DimensionPlot::onClusterDatasetChanged);
     connect(_settingsAction.getDimensionPicker(), &DimensionPickerAction::currentDimensionIndexChanged, this, &DimensionPlot::onDimensionChanged);
+    connect(&_settingsAction.getCurrentDatasetAction(), &DatasetPickerAction::datasetPicked, this, [this]() {
+        _dropWidget->setShowDropIndicator(false);
+        _featureDataset = _settingsAction.getCurrentDatasetAction().getCurrentDataset();
+        onFeatureDatasetChanged();
+    });
 }
 
 mv::Datasets getClusterDatasets(mv::Dataset<Points> featureDataset)
@@ -166,6 +172,24 @@ void DimensionPlot::onDimensionChanged()
 
     if (dimensionIndex >= 0 && dimensionIndex < _featureDataset->getNumDimensions())
         _webWidget->setData(_featureDataset, dimensionIndex, _clusterDataset);
+}
+
+void DimensionPlot::fromVariantMap(const QVariantMap& variantMap)
+{
+    ViewPlugin::fromVariantMap(variantMap);
+
+    variantMapMustContain(variantMap, "SettingsAction");
+
+    _settingsAction.fromVariantMap(variantMap["SettingsAction"].toMap());
+}
+
+QVariantMap DimensionPlot::toVariantMap() const
+{
+    QVariantMap variantMap = ViewPlugin::toVariantMap();
+
+    _settingsAction.insertIntoVariantMap(variantMap);
+
+    return variantMap;
 }
 
 ViewPlugin* DimensionPlotFactory::produce()
