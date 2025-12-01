@@ -65,9 +65,9 @@ function sizeSvgToFit() {
   if (!box || !svg) return;
 
   const r = box.getBoundingClientRect();
-  // Largest 2:1 rectangle that fits inside r
-  const targetW = Math.min(r.width, 2 * r.height);
-  const targetH = targetW / 2;
+  // Largest 4:3 rectangle that fits inside r
+  const targetW = Math.min(r.width, (4/3) * r.height);
+  const targetH = targetW * (3/4);
 
   // Use explicit pixel size; keep viewBox for internal layout
   svg.setAttribute('width',  Math.floor(targetW));
@@ -121,11 +121,18 @@ function plotData(jsonDoc)
 
     const grouped = d3.group(flatData, d => d.category);
     const categoryNames = Array.from(grouped.keys());
-    const maxChars = Math.max(...categoryNames.map(d => d.length));
-
+    //const maxChars = Math.max(...categoryNames.map(d => d.length));
+    
     // Layout setup
-    const margin = { top: 50, right: 30, bottom: Math.max(20 + maxChars * 6, 70), left: 50 };
+    const labelCharLimit = 12;  // we'll use this below too
 
+    const margin = {
+      top: 50,
+      right: 10,
+      bottom: 90,     // fixed, or maybe 60–80; no dependence on maxChars
+      left: 30
+    };
+    
     const width = cssWidth - margin.left - margin.right;
     const height = cssHeight - margin.top - margin.bottom;
     const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
@@ -154,13 +161,19 @@ function plotData(jsonDoc)
         .range(d3.schemeCategory10);
 
     // Axes
-    g.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x))
-        .selectAll("text")
-        .attr("transform", "rotate(-45)")
-        .style("text-anchor", "end")
-        .style("font-size", "14px");
+    const xAxis = g.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(x).tickFormat(d =>
+        d.length > labelCharLimit ? d.slice(0, labelCharLimit) + "…" : d
+      ));
+
+    xAxis.selectAll("text")
+      .attr("transform", "rotate(-45)")   // less rotation needed now
+      .style("text-anchor", "end")
+      .style("font-size", "12px")
+      .each(function(d) {
+        d3.select(this).append("title").text(d);   // full label on hover
+      });
 
     g.append("g").call(d3.axisLeft(y));
 
